@@ -1,0 +1,15 @@
+-- Create the database and schemas used by the Formula 1 AI Analyst project.
+-- Set these variables before running this script.
+--
+-- Example:
+-- SET F1_DATABASE = 'F1_ANALYTICS';
+-- SET F1_RAW_SCHEMA = 'RAW';
+-- SET F1_ANALYTICS_SCHEMA = 'ANALYTICS';
+
+CREATE DATABASE IF NOT EXISTS IDENTIFIER($F1_DATABASE);
+
+USE DATABASE IDENTIFIER($F1_DATABASE);
+
+CREATE SCHEMA IF NOT EXISTS IDENTIFIER($F1_DATABASE || '.' || $F1_RAW_SCHEMA);
+
+CREATE SCHEMA IF NOT EXISTS IDENTIFIER($F1_DATABASE || '.' || $F1_ANALYTICS_SCHEMA);

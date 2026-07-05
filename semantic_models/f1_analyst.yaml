@@ -1,0 +1,708 @@
+name: f1_analyst
+description: >
+  Business semantic view for analyzing historical Formula 1 races, drivers,
+  constructors, circuits, qualifying performance, race results, and season
+  championships.
+
+tables:
+  - name: driver_race_results
+    description: >
+      One row per driver result in a Grand Prix. Use this table for driver
+      race performance, wins, podiums, points, finishing positions, circuits,
+      and constructor context.
+    synonyms:
+      - driver results
+      - race results
+      - grand prix results
+      - finishing results
+      - driver performance
+    base_table:
+      database: F1_ANALYTICS
+      schema: ANALYTICS
+      table: DRIVER_RACE_RESULTS
+    dimensions:
+      - name: result_id
+        description: "Unique identifier for the driver's race result row."
+        expr: result_id
+        data_type: NUMBER
+        unique: true
+      - name: season
+        synonyms: ["year", "championship year", "season year"]
+        description: "Formula 1 season year."
+        expr: season
+        data_type: NUMBER
+        is_enum: false
+      - name: round_number
+        synonyms: ["round", "race round", "calendar round"]
+        description: "Round number of the race within the season calendar."
+        expr: round_number
+        data_type: NUMBER
+      - name: race_name
+        synonyms: ["grand prix", "gp", "race", "event"]
+        description: "Official race name, such as British Grand Prix."
+        expr: race_name
+        data_type: VARCHAR
+        sample_values: ["British Grand Prix", "Italian Grand Prix", "Monaco Grand Prix"]
+      - name: circuit_name
+        synonyms: ["track", "venue", "circuit", "race track"]
+        description: "Name of the circuit that hosted the race."
+        expr: circuit_name
+        data_type: VARCHAR
+        sample_values: ["Silverstone Circuit", "Autodromo Nazionale di Monza", "Circuit de Monaco"]
+      - name: circuit_location
+        synonyms: ["city", "host city", "location"]
+        description: "City or location of the circuit."
+        expr: circuit_location
+        data_type: VARCHAR
+      - name: circuit_country
+        synonyms: ["country", "host country", "nation"]
+        description: "Country where the race was held."
+        expr: circuit_country
+        data_type: VARCHAR
+        sample_values: ["UK", "Italy", "Monaco", "Brazil"]
+      - name: driver_name
+        synonyms: ["driver", "racer", "pilot", "formula 1 driver"]
+        description: "Driver full name."
+        expr: driver_name
+        data_type: VARCHAR
+        sample_values: ["Lewis Hamilton", "Max Verstappen", "Michael Schumacher"]
+      - name: driver_code
+        synonyms: ["driver abbreviation", "driver short code"]
+        description: "Three-letter driver code when available."
+        expr: driver_code
+        data_type: VARCHAR
+      - name: driver_nationality
+        synonyms: ["driver country", "driver nation"]
+        description: "Driver nationality."
+        expr: driver_nationality
+        data_type: VARCHAR
+      - name: constructor_name
+        synonyms: ["constructor", "team", "f1 team", "racing team"]
+        description: "Constructor or team name associated with the driver result."
+        expr: constructor_name
+        data_type: VARCHAR
+        sample_values: ["Ferrari", "Mercedes", "Red Bull", "McLaren"]
+      - name: constructor_nationality
+        synonyms: ["team nationality", "constructor country"]
+        description: "Constructor nationality."
+        expr: constructor_nationality
+        data_type: VARCHAR
+      - name: grid_position
+        synonyms: ["starting position", "start position", "grid"]
+        description: "Starting grid position for the race. A value of 1 is pole position."
+        expr: grid_position
+        data_type: NUMBER
+      - name: finishing_position
+        synonyms: ["finish", "classified finish", "result position"]
+        description: "Official finishing position where available."
+        expr: finishing_position
+        data_type: NUMBER
+      - name: classified_position
+        synonyms: ["classification", "position order", "final position"]
+        description: "Numeric classified result order used to rank race results."
+        expr: classified_position
+        data_type: NUMBER
+      - name: result_status
+        synonyms: ["status", "race status", "retirement reason", "dnf reason"]
+        description: "Final race status, such as Finished, Accident, Engine, or +1 Lap."
+        expr: result_status
+        data_type: VARCHAR
+      - name: winner_filter
+        synonyms: ["winner", "won", "race winner"]
+        description: "True when the driver won the race."
+        expr: classified_position = 1
+        data_type: BOOLEAN
+        labels:
+          - filter
+      - name: podium_filter
+        synonyms: ["podium", "top three", "podium finish"]
+        description: "True when the driver finished in the top three classified positions."
+        expr: classified_position <= 3
+        data_type: BOOLEAN
+        labels:
+          - filter
+      - name: pole_position_filter
+        synonyms: ["pole", "pole position", "started first"]
+        description: "True when the driver started first on the grid."
+        expr: grid_position = 1
+        data_type: BOOLEAN
+        labels:
+          - filter
+    time_dimensions:
+      - name: race_date
+        synonyms: ["date", "grand prix date", "event date"]
+        description: "Calendar date of the race."
+        expr: race_date
+        data_type: DATE
+    facts:
+      - name: championship_points
+        synonyms: ["points", "driver points", "race points"]
+        description: "Championship points scored by the driver in the race."
+        expr: championship_points
+        data_type: FLOAT
+      - name: completed_laps
+        synonyms: ["laps", "laps completed"]
+        description: "Number of race laps completed by the driver."
+        expr: completed_laps
+        data_type: NUMBER
+      - name: race_time_milliseconds
+        synonyms: ["race time", "elapsed time", "time in milliseconds"]
+        description: "Driver race time in milliseconds when available."
+        expr: race_time_milliseconds
+        data_type: NUMBER
+    metrics:
+      - name: total_driver_points
+        synonyms: ["summed driver points", "driver championship point total", "total driver points"]
+        description: "Total championship points scored by drivers."
+        expr: SUM(championship_points)
+      - name: race_entries
+        synonyms: ["starts", "entries", "race appearances"]
+        description: "Number of classified driver race result rows."
+        expr: COUNT(result_id)
+      - name: wins
+        synonyms: ["victories", "race wins", "grand prix wins"]
+        description: "Number of races won."
+        expr: SUM(IFF(classified_position = 1, 1, 0))
+      - name: podiums
+        synonyms: ["podium finishes", "top three finishes"]
+        description: "Number of top-three classified finishes."
+        expr: SUM(IFF(classified_position <= 3, 1, 0))
+      - name: pole_starts
+        synonyms: ["poles", "pole positions", "started on pole"]
+        description: "Number of races started from first on the grid."
+        expr: SUM(IFF(grid_position = 1, 1, 0))
+      - name: average_finish_position
+        synonyms: ["average finish", "mean finishing position"]
+        description: "Average classified finishing position."
+        expr: AVG(classified_position)
+
+  - name: constructor_race_results
+    description: >
+      One row per constructor per race, summarizing driver results into
+      constructor points, wins, podiums, and participating drivers.
+    synonyms:
+      - constructor race result set
+      - team race result set
+      - constructor race performance table
+      - team performance by race
+    base_table:
+      database: F1_ANALYTICS
+      schema: ANALYTICS
+      table: CONSTRUCTOR_RACE_RESULTS
+    dimensions:
+      - name: season
+        synonyms: ["constructor result season", "team result year"]
+        description: "Formula 1 season year."
+        expr: season
+        data_type: NUMBER
+      - name: round_number
+        synonyms: ["constructor result round", "team race round number"]
+        description: "Round number within the season."
+        expr: round_number
+        data_type: NUMBER
+      - name: race_name
+        synonyms: ["constructor grand prix", "team race event"]
+        description: "Official race name."
+        expr: race_name
+        data_type: VARCHAR
+      - name: circuit_name
+        synonyms: ["constructor result circuit", "team result track"]
+        description: "Circuit that hosted the race."
+        expr: circuit_name
+        data_type: VARCHAR
+      - name: circuit_country
+        synonyms: ["constructor result country", "team race host country"]
+        description: "Country where the race was held."
+        expr: circuit_country
+        data_type: VARCHAR
+      - name: constructor_name
+        synonyms: ["constructor in race", "team in race", "race constructor"]
+        description: "Constructor or team name."
+        expr: constructor_name
+        data_type: VARCHAR
+        sample_values: ["Ferrari", "Mercedes", "Red Bull", "McLaren"]
+      - name: constructor_nationality
+        synonyms: ["race team nationality", "race constructor country"]
+        description: "Constructor nationality."
+        expr: constructor_nationality
+        data_type: VARCHAR
+      - name: drivers
+        synonyms: ["constructor lineup", "race driver lineup", "drivers for team in race"]
+        description: "Comma-separated driver names classified for the constructor in the race."
+        expr: drivers
+        data_type: VARCHAR
+    time_dimensions:
+      - name: race_date
+        synonyms: ["constructor result date", "team event date"]
+        description: "Calendar date of the race."
+        expr: race_date
+        data_type: DATE
+    facts:
+      - name: constructor_points
+        synonyms: ["constructor race points", "team race points"]
+        description: "Constructor points scored in the race."
+        expr: constructor_points
+        data_type: FLOAT
+      - name: wins
+        synonyms: ["constructor race wins", "team race wins"]
+        description: "Constructor wins in the race, normally 0 or 1."
+        expr: wins
+        data_type: NUMBER
+      - name: podiums
+        synonyms: ["constructor race podiums", "team race podiums"]
+        description: "Number of podium finishes by the constructor in the race."
+        expr: podiums
+        data_type: NUMBER
+    metrics:
+      - name: total_constructor_points
+        synonyms: ["summed constructor race points", "summed team race points"]
+        description: "Total points scored by constructors."
+        expr: SUM(constructor_points)
+      - name: constructor_wins
+        synonyms: ["summed team race wins", "summed constructor race victories"]
+        description: "Total race wins by constructors."
+        expr: SUM(wins)
+      - name: constructor_podiums
+        synonyms: ["summed team podiums", "summed constructor podium finishes"]
+        description: "Total podium finishes by constructors."
+        expr: SUM(podiums)
+      - name: races_entered
+        synonyms: ["constructor race entries", "team race entries"]
+        description: "Number of constructor race entries."
+        expr: COUNT(*)
+
+  - name: race_summary
+    description: >
+      One row per Grand Prix summarizing winner, winning constructor, podium,
+      classified drivers, and total points awarded.
+    synonyms:
+      - race summary table
+      - grand prix summary table
+      - formula 1 race calendar
+      - race winner summary
+    base_table:
+      database: F1_ANALYTICS
+      schema: ANALYTICS
+      table: RACE_SUMMARY
+    dimensions:
+      - name: race_id
+        description: "Unique race identifier."
+        expr: race_id
+        data_type: NUMBER
+        unique: true
+      - name: season
+        synonyms: ["race summary season", "race calendar year"]
+        description: "Formula 1 season year."
+        expr: season
+        data_type: NUMBER
+      - name: round_number
+        synonyms: ["race summary round", "grand prix calendar round"]
+        description: "Race round number within the season."
+        expr: round_number
+        data_type: NUMBER
+      - name: race_name
+        synonyms: ["race summary grand prix", "race summary event"]
+        description: "Official race name."
+        expr: race_name
+        data_type: VARCHAR
+      - name: circuit_name
+        synonyms: ["race summary circuit", "race summary track"]
+        description: "Circuit that hosted the race."
+        expr: circuit_name
+        data_type: VARCHAR
+      - name: circuit_location
+        synonyms: ["race host city", "race circuit location"]
+        description: "City or location of the circuit."
+        expr: circuit_location
+        data_type: VARCHAR
+      - name: circuit_country
+        synonyms: ["race host country", "race nation"]
+        description: "Country where the race was held."
+        expr: circuit_country
+        data_type: VARCHAR
+      - name: winning_driver
+        synonyms: ["summary winning driver", "grand prix winning driver"]
+        description: "Driver who won the race."
+        expr: winning_driver
+        data_type: VARCHAR
+      - name: winning_constructor
+        synonyms: ["summary winning team", "summary winning constructor"]
+        description: "Constructor that won the race."
+        expr: winning_constructor
+        data_type: VARCHAR
+      - name: podium_drivers
+        synonyms: ["race summary podium", "race summary top three"]
+        description: "Drivers who finished on the podium in classified order."
+        expr: podium_drivers
+        data_type: VARCHAR
+    time_dimensions:
+      - name: race_date
+        synonyms: ["race summary date", "grand prix event date"]
+        description: "Calendar date of the race."
+        expr: race_date
+        data_type: DATE
+    facts:
+      - name: classified_drivers
+        synonyms: ["classified finishers", "drivers classified"]
+        description: "Number of classified drivers in the race."
+        expr: classified_drivers
+        data_type: NUMBER
+      - name: total_points_awarded
+        synonyms: ["race summary points awarded", "points awarded in race"]
+        description: "Total championship points awarded in the race."
+        expr: total_points_awarded
+        data_type: FLOAT
+    metrics:
+      - name: race_count
+        synonyms: ["race summary count", "number of grands prix"]
+        description: "Number of races."
+        expr: COUNT(race_id)
+      - name: total_championship_points_awarded
+        synonyms: ["summed race points awarded", "total awarded championship points"]
+        description: "Total championship points awarded across races."
+        expr: SUM(total_points_awarded)
+      - name: average_classified_drivers
+        synonyms: ["average finishers", "average classified drivers"]
+        description: "Average number of classified drivers per race."
+        expr: AVG(classified_drivers)
+
+  - name: driver_season_standings
+    description: >
+      Final driver championship standings by season. Use this table for world
+      champions, season points, championship positions, and season wins.
+    synonyms:
+      - final driver standings
+      - driver championship table
+      - world drivers championship table
+      - wdc table
+    base_table:
+      database: F1_ANALYTICS
+      schema: ANALYTICS
+      table: DRIVER_SEASON_STANDINGS
+    dimensions:
+      - name: season
+        synonyms: ["driver standings season", "wdc year"]
+        description: "Formula 1 season year."
+        expr: season
+        data_type: NUMBER
+      - name: driver_name
+        synonyms: ["standings driver", "wdc driver"]
+        description: "Driver full name."
+        expr: driver_name
+        data_type: VARCHAR
+      - name: driver_code
+        synonyms: ["standings driver abbreviation", "standings driver short code"]
+        description: "Three-letter driver code when available."
+        expr: driver_code
+        data_type: VARCHAR
+      - name: driver_nationality
+        synonyms: ["standings driver country", "standings driver nation"]
+        description: "Driver nationality."
+        expr: driver_nationality
+        data_type: VARCHAR
+      - name: championship_position
+        synonyms: ["driver standings position", "driver championship rank"]
+        description: "Final championship position for the season."
+        expr: championship_position
+        data_type: NUMBER
+      - name: world_champion_filter
+        synonyms: ["driver world champion filter", "drivers champion flag"]
+        description: "True when the driver finished first in the season standings."
+        expr: championship_position = 1
+        data_type: BOOLEAN
+        labels:
+          - filter
+    facts:
+      - name: season_points
+        synonyms: ["driver final points", "wdc season points"]
+        description: "Final driver points total for the season."
+        expr: season_points
+        data_type: FLOAT
+      - name: season_wins
+        synonyms: ["driver final wins", "wdc season wins"]
+        description: "Driver wins recorded in the final season standings."
+        expr: season_wins
+        data_type: NUMBER
+    metrics:
+      - name: total_season_points
+        synonyms: ["summed driver final points", "total wdc points"]
+        description: "Total final-season points across driver standings rows."
+        expr: SUM(season_points)
+      - name: total_season_wins
+        synonyms: ["summed driver final wins", "total wdc wins"]
+        description: "Total wins from final driver standings."
+        expr: SUM(season_wins)
+      - name: world_championships
+        synonyms: ["driver world titles", "wdc titles"]
+        description: "Number of driver world championships."
+        expr: SUM(IFF(championship_position = 1, 1, 0))
+
+  - name: constructor_season_standings
+    description: >
+      Final constructor championship standings by season. Use this table for
+      constructor champions, season points, championship positions, and wins.
+    synonyms:
+      - final constructor standings
+      - team championship table
+      - constructors championship table
+      - wcc table
+    base_table:
+      database: F1_ANALYTICS
+      schema: ANALYTICS
+      table: CONSTRUCTOR_SEASON_STANDINGS
+    dimensions:
+      - name: season
+        synonyms: ["constructor standings season", "wcc year"]
+        description: "Formula 1 season year."
+        expr: season
+        data_type: NUMBER
+      - name: constructor_name
+        synonyms: ["standings constructor", "wcc team", "champion constructor name"]
+        description: "Constructor or team name."
+        expr: constructor_name
+        data_type: VARCHAR
+      - name: constructor_nationality
+        synonyms: ["standings team nationality", "standings constructor country"]
+        description: "Constructor nationality."
+        expr: constructor_nationality
+        data_type: VARCHAR
+      - name: championship_position
+        synonyms: ["constructor standings position", "wcc rank"]
+        description: "Final constructor championship position for the season."
+        expr: championship_position
+        data_type: NUMBER
+      - name: constructor_champion_filter
+        synonyms: ["constructor champion flag", "team champion flag"]
+        description: "True when the constructor finished first in the season standings."
+        expr: championship_position = 1
+        data_type: BOOLEAN
+        labels:
+          - filter
+    facts:
+      - name: season_points
+        synonyms: ["constructor final points", "wcc season points"]
+        description: "Final constructor points total for the season."
+        expr: season_points
+        data_type: FLOAT
+      - name: season_wins
+        synonyms: ["constructor final wins", "wcc season wins"]
+        description: "Constructor wins recorded in the final season standings."
+        expr: season_wins
+        data_type: NUMBER
+    metrics:
+      - name: total_constructor_season_points
+        synonyms: ["summed constructor final points", "total wcc points"]
+        description: "Total final-season points across constructor standings rows."
+        expr: SUM(season_points)
+      - name: total_constructor_season_wins
+        synonyms: ["summed constructor final wins", "total wcc wins"]
+        description: "Total wins from final constructor standings."
+        expr: SUM(season_wins)
+      - name: constructor_championships
+        synonyms: ["wcc titles", "constructor world titles"]
+        description: "Number of constructor championships."
+        expr: SUM(IFF(championship_position = 1, 1, 0))
+
+  - name: qualifying_results
+    description: >
+      One row per driver qualifying result. Use this table for qualifying
+      positions, pole positions, and session times.
+    synonyms:
+      - qualifying result table
+      - quali result table
+      - formula 1 qualifying results
+      - qualifying grid table
+    base_table:
+      database: F1_ANALYTICS
+      schema: ANALYTICS
+      table: QUALIFYING_RESULTS
+    dimensions:
+      - name: season
+        synonyms: ["qualifying season", "qualifying year"]
+        description: "Formula 1 season year."
+        expr: season
+        data_type: NUMBER
+      - name: round_number
+        synonyms: ["qualifying round", "qualifying race round"]
+        description: "Round number within the season."
+        expr: round_number
+        data_type: NUMBER
+      - name: race_name
+        synonyms: ["qualifying grand prix", "qualifying event"]
+        description: "Official race name."
+        expr: race_name
+        data_type: VARCHAR
+      - name: driver_name
+        synonyms: ["qualifying driver", "quali driver"]
+        description: "Driver full name."
+        expr: driver_name
+        data_type: VARCHAR
+      - name: constructor_name
+        synonyms: ["qualifying constructor", "qualifying team"]
+        description: "Constructor or team name."
+        expr: constructor_name
+        data_type: VARCHAR
+      - name: qualifying_position
+        synonyms: ["qualifying position dimension", "quali grid rank"]
+        description: "Final qualifying position."
+        expr: qualifying_position
+        data_type: NUMBER
+      - name: q1_time
+        synonyms: ["q1", "q1 lap time"]
+        description: "Q1 lap time text."
+        expr: q1_time
+        data_type: VARCHAR
+      - name: q2_time
+        synonyms: ["q2", "q2 lap time"]
+        description: "Q2 lap time text."
+        expr: q2_time
+        data_type: VARCHAR
+      - name: q3_time
+        synonyms: ["q3", "q3 lap time"]
+        description: "Q3 lap time text."
+        expr: q3_time
+        data_type: VARCHAR
+      - name: qualifying_pole_filter
+        synonyms: ["qualifying pole filter", "qualified first flag"]
+        description: "True when the driver qualified first."
+        expr: qualifying_position = 1
+        data_type: BOOLEAN
+        labels:
+          - filter
+    time_dimensions:
+      - name: race_date
+        synonyms: ["qualifying race date", "qualifying event date"]
+        description: "Calendar date of the race."
+        expr: race_date
+        data_type: DATE
+    facts:
+      - name: qualifying_position_value
+        synonyms: ["qualifying position fact", "numeric qualifying result"]
+        description: "Final qualifying position as a numeric fact."
+        expr: qualifying_position
+        data_type: NUMBER
+    metrics:
+      - name: qualifying_entries
+        synonyms: ["qualifying result rows", "qualifying entry count"]
+        description: "Number of qualifying result rows."
+        expr: COUNT(qualifying_id)
+      - name: pole_positions
+        synonyms: ["qualifying pole positions", "qualifying pole count"]
+        description: "Number of pole positions earned in qualifying."
+        expr: SUM(IFF(qualifying_position = 1, 1, 0))
+      - name: average_qualifying_position
+        synonyms: ["average qualifying result rank", "mean quali position"]
+        description: "Average qualifying position."
+        expr: AVG(qualifying_position)
+
+module_custom_instructions:
+  sql_generation: |
+    Prefer the most specific logical table for the user's question.
+    Use driver_race_results for race-level driver wins, podiums, points, finishing positions, and circuits.
+    Use constructor_race_results for constructor or team points, wins, and podiums by race.
+    Use race_summary for race winners, podium lists, race counts, and circuit hosting questions.
+    Use driver_season_standings for final driver championship standings and world titles.
+    Use constructor_season_standings for final constructor championship standings and constructor titles.
+    Use qualifying_results for qualifying position and pole-position questions.
+    Interpret "team" as constructor.
+    Interpret "Grand Prix", "GP", and "race" as race_name unless the user asks for a count of races.
+    When ranking drivers or constructors, order by the requested metric descending unless the question asks for lowest or worst.
+  question_categorization: |
+    The semantic view covers historical Formula 1 race, qualifying, constructor, driver, circuit, and championship data.
+    If a question asks for live race results, betting odds, weather, regulations, or current news, classify it as outside this dataset.
+
+verified_queries:
+  - name: driver_wins_2021
+    question: "Which drivers won the most races in the 2021 season?"
+    verified_by: "Formula 1 AI Analyst"
+    use_as_onboarding_question: true
+    sql: |
+      SELECT
+          driver_name,
+          SUM(IFF(classified_position = 1, 1, 0)) AS wins
+      FROM __driver_race_results
+      WHERE season = 2021
+      GROUP BY driver_name
+      ORDER BY wins DESC, driver_name;
+
+  - name: constructor_points_2022
+    question: "Which constructor scored the most points in 2022?"
+    verified_by: "Formula 1 AI Analyst"
+    use_as_onboarding_question: true
+    sql: |
+      SELECT
+          constructor_name,
+          SUM(constructor_points) AS constructor_points
+      FROM __constructor_race_results
+      WHERE season = 2022
+      GROUP BY constructor_name
+      ORDER BY constructor_points DESC
+      LIMIT 10;
+
+  - name: podiums_by_driver_2020
+    question: "Show podium finishes by driver for the 2020 season."
+    verified_by: "Formula 1 AI Analyst"
+    use_as_onboarding_question: true
+    sql: |
+      SELECT
+          driver_name,
+          SUM(IFF(classified_position <= 3, 1, 0)) AS podiums
+      FROM __driver_race_results
+      WHERE season = 2020
+      GROUP BY driver_name
+      ORDER BY podiums DESC, driver_name;
+
+  - name: circuits_with_most_races
+    question: "Which circuits hosted the most Formula 1 races?"
+    verified_by: "Formula 1 AI Analyst"
+    use_as_onboarding_question: true
+    sql: |
+      SELECT
+          circuit_name,
+          circuit_country,
+          COUNT(*) AS races_hosted
+      FROM __race_summary
+      GROUP BY circuit_name, circuit_country
+      ORDER BY races_hosted DESC, circuit_name
+      LIMIT 10;
+
+  - name: ferrari_mercedes_points_by_season
+    question: "Compare Ferrari and Mercedes points by season."
+    verified_by: "Formula 1 AI Analyst"
+    use_as_onboarding_question: false
+    sql: |
+      SELECT
+          season,
+          constructor_name,
+          SUM(constructor_points) AS constructor_points
+      FROM __constructor_race_results
+      WHERE constructor_name IN ('Ferrari', 'Mercedes')
+      GROUP BY season, constructor_name
+      ORDER BY season, constructor_name;
+
+  - name: driver_world_champions
+    question: "List the Formula 1 world drivers champions by season."
+    verified_by: "Formula 1 AI Analyst"
+    use_as_onboarding_question: true
+    sql: |
+      SELECT
+          season,
+          driver_name,
+          season_points,
+          season_wins
+      FROM __driver_season_standings
+      WHERE championship_position = 1
+      ORDER BY season;
+
+  - name: pole_positions_by_driver
+    question: "Which drivers have the most pole positions?"
+    verified_by: "Formula 1 AI Analyst"
+    use_as_onboarding_question: false
+    sql: |
+      SELECT
+          driver_name,
+          SUM(IFF(qualifying_position = 1, 1, 0)) AS pole_positions
+      FROM __qualifying_results
+      GROUP BY driver_name
+      ORDER BY pole_positions DESC, driver_name
+      LIMIT 10;

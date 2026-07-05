@@ -1,0 +1,9 @@
+-- Stage used by Cortex Analyst to read the Formula 1 semantic model YAML.
+-- Required session variables:
+-- SET F1_DATABASE = 'F1_ANALYTICS';
+-- SET F1_ANALYTICS_SCHEMA = 'ANALYTICS';
+
+USE DATABASE IDENTIFIER($F1_DATABASE);
+
+CREATE STAGE IF NOT EXISTS IDENTIFIER($F1_ANALYTICS_SCHEMA || '.F1_SEMANTIC_STAGE')
+    DIRECTORY = (ENABLE = TRUE);

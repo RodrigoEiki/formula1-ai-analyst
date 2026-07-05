@@ -1,0 +1,10 @@
+definition_version: 2
+entities:
+  f1_ai_analyst:
+    type: streamlit
+    identifier: F1_AI_ANALYST
+    query_warehouse: F1_WH
+    main_file: sis_streamlit_app.py
+    artifacts:
+      - sis_streamlit_app.py
+      - environment.yml

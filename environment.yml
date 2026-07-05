@@ -1,0 +1,7 @@
+name: f1-ai-analyst
+channels:
+  - snowflake
+dependencies:
+  - streamlit
+  - snowflake-snowpark-python
+  - pandas
