@@ -12,11 +12,7 @@ query, and Streamlit presents the results.
 
 ## 🎬 Demo
 
-> Demo GIF placeholder
-
-```md
-![Formula 1 AI Analyst Demo](docs/assets/demo.gif)
-```
+![Formula 1 AI Analyst demo](docs/formula1-ai-analyst-demo.gif)
 
 ------------------------------------------------------------------------
 
