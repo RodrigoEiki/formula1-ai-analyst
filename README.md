@@ -22,11 +22,7 @@ query, and Streamlit presents the results.
 
 ## 🏗️ Architecture
 
-> Architecture diagram placeholder
-
-```md
-![Architecture](docs/assets/architecture.png)
-```
+![Formula 1 AI Analyst architecture](docs/formula1_cortex_analyst_architecture.png)
 
 ```text
 Kaggle Dataset
